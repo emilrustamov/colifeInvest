@@ -263,6 +263,51 @@ class DatabaseService {
     return result.rows;
   }
 
+  // Получение всех ID стадий
+  async getAllStageIds() {
+    const result = await this.pool.query('SELECT stage_id FROM stages');
+    return result.rows;
+  }
+
+  // Удаление воронок по ID
+  async deletePipelines(pipelineIds) {
+    if (pipelineIds.length === 0) return;
+    
+    try {
+      // Сначала удаляем связанные стадии
+      await this.pool.query(
+        'DELETE FROM stages WHERE pipeline_id = ANY($1)',
+        [pipelineIds]
+      );
+      
+      // Затем удаляем воронки
+      await this.pool.query(
+        'DELETE FROM pipelines WHERE id = ANY($1)',
+        [pipelineIds]
+      );
+      
+      console.log(`🗑️ Удалено ${pipelineIds.length} воронок и связанных стадий`);
+    } catch (error) {
+      throw new Error(`Ошибка удаления воронок: ${error.message}`);
+    }
+  }
+
+  // Удаление стадий по ID
+  async deleteStages(stageIds) {
+    if (stageIds.length === 0) return;
+    
+    try {
+      await this.pool.query(
+        'DELETE FROM stages WHERE stage_id = ANY($1)',
+        [stageIds]
+      );
+      
+      console.log(`🗑️ Удалено ${stageIds.length} стадий`);
+    } catch (error) {
+      throw new Error(`Ошибка удаления стадий: ${error.message}`);
+    }
+  }
+
   // Получение фильтров (воронки и стадии)
   async getFilters() {
     const pipelines = await this.pool.query(

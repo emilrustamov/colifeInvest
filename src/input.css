@@ -33,6 +33,10 @@
     @apply bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400 focus:ring-blue-500;
   }
   
+  .btn-nav {
+    @apply inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors;
+  }
+  
   .btn-success {
     @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
   }
@@ -54,6 +58,42 @@
     @apply hover:shadow-md hover:-translate-y-1;
   }
   
+  .card-header {
+    @apply px-6 py-4 border-b border-slate-200;
+  }
+  
+  .card-title {
+    @apply text-lg font-semibold text-slate-800;
+  }
+  
+  .stats-card {
+    @apply bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow;
+  }
+  
+  .stats-card-icon {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center;
+  }
+  
+  .stats-card-icon-blue {
+    @apply bg-blue-100;
+  }
+  
+  .stats-card-icon-green {
+    @apply bg-green-100;
+  }
+  
+  .stats-card-icon-purple {
+    @apply bg-purple-100;
+  }
+  
+  .stats-card-icon-yellow {
+    @apply bg-yellow-100;
+  }
+  
+  .stats-card-icon-pink {
+    @apply bg-pink-100;
+  }
+  
   /* Form elements */
   .form-input {
     @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
@@ -65,6 +105,14 @@
   
   .form-label {
     @apply block text-sm font-medium text-slate-700 mb-2;
+  }
+  
+  .form-group {
+    @apply space-y-2;
+  }
+  
+  .checkbox-custom {
+    @apply w-4 h-4 text-purple-600 bg-white border-slate-300 rounded focus:ring-purple-500 focus:ring-2;
   }
   
   /* Table styles */
@@ -89,7 +137,11 @@
   }
   
   .table-cell {
-    @apply px-6 py-4 text-sm text-slate-900;
+    @apply px-6 py-4 text-sm text-slate-900 bg-white;
+  }
+  
+  .table-cell-id {
+    @apply px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 bg-white;
   }
   
   /* Badge styles */
@@ -113,9 +165,17 @@
     @apply bg-purple-100 text-purple-800;
   }
   
+  .link-button {
+    @apply inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200;
+  }
+  
+  .link-button-purple {
+    @apply inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200;
+  }
+  
   /* Notification styles */
   .notification {
-    @apply fixed top-4 right-4 z-50 px-6 py-3 rounded-lg text-white font-medium shadow-lg;
+    @apply fixed top-4 right-4 z-50 px-6 py-3 rounded-lg text-white font-medium shadow-lg transition-all duration-300;
   }
   
   .notification-success {

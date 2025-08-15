@@ -7,6 +7,8 @@
     "dev": "nodemon index.js",
     "build:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch",
     "build:css:prod": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify",
+    "export-db": "node scripts/quick_export.js",
+    "export-db-full": "node scripts/export_db_structure.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

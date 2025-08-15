@@ -57,7 +57,7 @@ class SyncService {
     return result;
   }
 
-  // Загрузка воронок
+  // Загрузка воронок с очисткой удаленных
   async loadPipelines() {
     try {
       console.log('🔄 Загрузка воронок...');
@@ -68,8 +68,22 @@ class SyncService {
         const columns = ['id', 'name'];
         const values = pipelines.map(p => [p.id, p.name]);
         
+        // Получаем существующие ID воронок из БД
+        const existingPipelines = await this.db.getPipelineIds();
+        const existingIds = new Set(existingPipelines.map(p => p.id));
+        const newIds = new Set(pipelines.map(p => p.id));
+        
+        // Находим удаленные воронки
+        const deletedIds = existingIds.filter(id => !newIds.has(id));
+        
+        if (deletedIds.length > 0) {
+          console.log(`🗑️ Удаляем ${deletedIds.length} удаленных воронок из БД`);
+          await this.db.deletePipelines(deletedIds);
+        }
+        
+        // Обновляем/добавляем существующие
         await this.db.batchInsert('pipelines', columns, values, ['id']);
-        console.log(`✅ Загружено ${pipelines.length} воронок`);
+        console.log(`✅ Загружено ${pipelines.length} воронок, удалено ${deletedIds.length} старых`);
       }
     } catch (error) {
       console.error('❌ Ошибка загрузки воронок:', error.message);
@@ -77,29 +91,54 @@ class SyncService {
     }
   }
 
-  // Загрузка стадий
+  // Загрузка стадий с очисткой удаленных
   async loadStages() {
     try {
       console.log('🔄 Загрузка стадий...');
       
+      // Собираем все стадии из Bitrix24
+      const allStages = [];
+      
       // Основные стадии
       const mainStages = await this.bitrix.getStages('DEAL_STAGE');
       if (mainStages.result) {
-        const columns = ['stage_id', 'stage_name', 'pipeline_id'];
-        const values = mainStages.result.map(s => [s.STATUS_ID, s.NAME, 0]);
-        await this.db.batchInsert('stages', columns, values, ['stage_id']);
+        const mainStageValues = mainStages.result.map(s => [s.STATUS_ID, s.NAME, 0]);
+        allStages.push(...mainStageValues);
       }
 
       // Стадии по воронкам
       const pipelines = await this.db.getPipelineIds();
       for (const pipe of pipelines) {
-        const response = await this.bitrix.getStages(`DEAL_STAGE_${pipe.id}`);
-        if (response.result) {
-          const columns = ['stage_id', 'stage_name', 'pipeline_id'];
-          const values = response.result.map(s => [s.STATUS_ID, s.NAME, pipe.id]);
-          await this.db.batchInsert('stages', columns, values, ['stage_id']);
+        try {
+          const response = await this.bitrix.getStages(`DEAL_STAGE_${pipe.id}`);
+          if (response.result) {
+            const stageValues = response.result.map(s => [s.STATUS_ID, s.NAME, pipe.id]);
+            allStages.push(...stageValues);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Не удалось загрузить стадии для воронки ${pipe.id}:`, error.message);
         }
         await this.delay(config.sync.delayBetweenRequests);
+      }
+
+      if (allStages.length > 0) {
+        // Получаем существующие стадии из БД
+        const existingStages = await this.db.getAllStageIds();
+        const existingIds = new Set(existingStages.map(s => s.stage_id));
+        const newIds = new Set(allStages.map(s => s[0]));
+        
+        // Находим удаленные стадии
+        const deletedIds = existingIds.filter(id => !newIds.has(id));
+        
+        if (deletedIds.length > 0) {
+          console.log(`🗑️ Удаляем ${deletedIds.length} удаленных стадий из БД`);
+          await this.db.deleteStages(deletedIds);
+        }
+        
+        // Обновляем/добавляем существующие
+        const columns = ['stage_id', 'stage_name', 'pipeline_id'];
+        await this.db.batchInsert('stages', columns, allStages, ['stage_id']);
+        console.log(`✅ Загружено ${allStages.length} стадий, удалено ${deletedIds.length} старых`);
       }
 
       console.log('✅ Все стадии загружены');
