@@ -2,65 +2,151 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Контакты</title>
+    <link rel="stylesheet" href="/styles.css" />
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-      table {
-        border-collapse: collapse;
-        width: 100%;
-      }
-      th,
-      td {
-        border: 1px solid #ccc;
-        padding: 8px;
-      }
-      th {
-        background: #f0f0f0;
-      }
-      button {
-        padding: 4px 8px;
-        margin: 0 2px;
-      }
-      a {
-        color: blue;
-      }
-    </style>
   </head>
-  <body>
-    <h1>Контакты</h1>
-    <p>
-      <a href="/">← Назад к Сделкам</a>
-    </p>
-    <p>
-      <button onclick="loadContacts()">Загрузить контакты</button>
-      <label>
-        <input
-          type="checkbox"
-          id="only-without-deals"
-          onchange="renderContacts(latestData)"
-        />
-        Показать только без сделок
-      </label>
-    </p>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Имя</th>
-          <th>Телефон</th>
-          <th>Ссылка</th>
-          <th>Связано со сделками</th>
-          <th>Действие</th>
-        </tr>
-      </thead>
-      <tbody id="contacts-body">
-        <!-- Здесь появятся строки -->
-      </tbody>
-    </table>
+  <body class="bg-gradient-to-br from-slate-50 to-purple-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800">Контакты</h1>
+          </div>
+          <nav class="flex items-center space-x-4">
+            <a href="/" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Назад к сделкам
+            </a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">Всего контактов</p>
+              <p class="text-2xl font-bold text-slate-900" id="total-contacts">-</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">С контактами</p>
+              <p class="text-2xl font-bold text-slate-900" id="contacts-with-deals">-</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">Без сделок</p>
+              <p class="text-2xl font-bold text-slate-900" id="contacts-without-deals">-</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">Обновлено</p>
+              <p class="text-2xl font-bold text-slate-900">Сегодня</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center space-x-4">
+                         <button onclick="loadContacts()" class="btn btn-purple">
+               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+               </svg>
+               Загрузить контакты
+             </button>
+          </div>
+          <div class="flex items-center space-x-3">
+            <label class="flex items-center">
+                             <input
+                 type="checkbox"
+                 id="only-without-deals"
+                 onchange="renderContacts(latestData)"
+                 class="checkbox-custom"
+               />
+              <span class="ml-2 text-sm font-medium text-slate-700">Показать только без сделок</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contacts Table -->
+      <div class="table-container">
+        <div class="card-header">
+          <h3 class="card-title">Список контактов</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="table-header">
+              <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Телефон</th>
+                <th>Ссылка</th>
+                <th>Связано со сделками</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody id="contacts-body" class="table-body">
+              <!-- Rows will be inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
 
     <script>
       console.log("Contacts page script loaded");
       const socket = io();
+      let latestData = [];
+      
       socket.on("connect", () =>
         console.log("Socket connected, id =", socket.id)
       );
@@ -68,58 +154,78 @@
         console.error("Socket connection error:", err)
       );
 
-      // Запрос списка контактов
       function loadContacts() {
         console.log("Emitting load-contacts");
         socket.emit("load-contacts");
+        showNotification("Загрузка контактов...", "info");
       }
 
-      // Обработка данных от сервера
       socket.on("contacts-data", (rows) => {
         console.log("contacts-data received:", rows);
         latestData = rows;
         renderContacts(rows);
+        updateStats(rows);
+        showNotification(`Загружено ${rows.length} контактов`, "success");
       });
 
-      // Обработать и отрисовать контакты в таблице
+      function updateStats(rows) {
+        const total = rows.length;
+        const withDeals = rows.filter(c => {
+          const dealIds = Array.isArray(c.deal_ids) ? c.deal_ids.filter(id => id != null) : [];
+          return dealIds.length > 0;
+        }).length;
+        const withoutDeals = total - withDeals;
+
+        document.getElementById("total-contacts").textContent = total;
+        document.getElementById("contacts-with-deals").textContent = withDeals;
+        document.getElementById("contacts-without-deals").textContent = withoutDeals;
+      }
+
       function renderContacts(rows) {
         const tbody = document.getElementById("contacts-body");
         tbody.innerHTML = "";
 
-        const onlyWithout =
-          document.getElementById("only-without-deals").checked;
+        const onlyWithout = document.getElementById("only-without-deals").checked;
 
         rows.forEach((contact) => {
           const dealIds = Array.isArray(contact.deal_ids)
             ? contact.deal_ids.filter((id) => id != null)
             : [];
           const hasDeals = dealIds.length > 0;
+          
           if (onlyWithout && hasDeals) {
-            return; // пропускаем контакты, у которых есть сделки
+            return;
           }
+
           const tr = document.createElement("tr");
+          tr.className = "table-row";
 
           // ID
           const tdId = document.createElement("td");
+          tdId.className = "table-cell-id";
           tdId.textContent = contact.id;
           tr.appendChild(tdId);
 
           // Имя
           const tdName = document.createElement("td");
+          tdName.className = "table-cell";
           tdName.textContent = contact.contact_name || "-";
           tr.appendChild(tdName);
 
           // Телефон
           const tdPhone = document.createElement("td");
+          tdPhone.className = "table-cell";
           tdPhone.textContent = contact.phone || "-";
           tr.appendChild(tdPhone);
 
           // Ссылка на контакт
           const tdLink = document.createElement("td");
+          tdLink.className = "table-cell";
           if (contact.contact_link) {
             const a = document.createElement("a");
             a.href = contact.contact_link;
             a.target = "_blank";
+            a.className = "link-button-purple";
             a.textContent = "Открыть";
             tdLink.appendChild(a);
           } else {
@@ -127,41 +233,46 @@
           }
           tr.appendChild(tdLink);
 
-          // Связано со сделками: показать количество или списком ссылок
+          // Связано со сделками
           const tdDeals = document.createElement("td");
+          tdDeals.className = "table-cell";
           if (hasDeals) {
-            // Показать количество и, по желанию, ссылки на сделки
-            tdDeals.textContent = `#${dealIds.length}`;
-            // Можно добавить ссылки, например:
-            const span = document.createElement("span");
-            span.style.marginLeft = "5px";
+            const badge = document.createElement("span");
+            badge.className = "badge badge-success";
+            badge.textContent = `${dealIds.length} сделок`;
+            tdDeals.appendChild(badge);
+            
+            const linksDiv = document.createElement("div");
+            linksDiv.className = "mt-1 space-x-1";
             dealIds.forEach((did, idx) => {
               const aD = document.createElement("a");
               aD.href = `https://colife-invest.bitrix24.ru/crm/deal/details/${did}/`;
               aD.target = "_blank";
+              aD.className = "text-blue-600 hover:text-blue-800 text-xs";
               aD.textContent = did;
-              span.appendChild(aD);
+              linksDiv.appendChild(aD);
               if (idx < dealIds.length - 1) {
-                span.appendChild(document.createTextNode(", "));
+                linksDiv.appendChild(document.createTextNode(", "));
               }
             });
-            tdDeals.appendChild(span);
+            tdDeals.appendChild(linksDiv);
           } else {
-            tdDeals.textContent = "Нет";
+            const badge = document.createElement("span");
+            badge.className = "badge badge-warning";
+            badge.textContent = "Нет сделок";
+            tdDeals.appendChild(badge);
           }
           tr.appendChild(tdDeals);
 
-          // Действие: если нет сделок, предложить удалить
+          // Действие
           const tdAction = document.createElement("td");
+          tdAction.className = "table-cell";
           if (!hasDeals) {
             const btn = document.createElement("button");
             btn.textContent = "Удалить";
+            btn.className = "btn btn-danger";
             btn.onclick = () => {
-              if (
-                confirm(
-                  `Удалить контакт "${contact.contact_name}" (ID ${contact.id}) без сделок?`
-                )
-              ) {
+              if (confirm(`Удалить контакт "${contact.contact_name}" (ID ${contact.id}) без сделок?`)) {
                 socket.emit("delete-contact", { contactId: contact.id });
               }
             };
@@ -175,19 +286,36 @@
         });
       }
 
-      // Обработка результата удаления
       socket.on("delete-result", ({ success, contactId, message }) => {
         if (success) {
-          alert(`Контакт ID ${contactId} удалён.`);
-          // Обновляем список: удаляем из latestData
+          showNotification(`Контакт ID ${contactId} удалён`, "success");
           latestData = latestData.filter((c) => c.id !== contactId);
           renderContacts(latestData);
+          updateStats(latestData);
         } else {
-          alert("Не удалось удалить контакт: " + (message || ""));
+          showNotification("Не удалось удалить контакт: " + (message || ""), "error");
         }
       });
 
-      // При загрузке страницы автоматически загружаем контакты
+      function showNotification(message, type = "info") {
+        const notification = document.createElement("div");
+        notification.className = `notification notification-${type} transform translate-x-full`;
+        
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.remove("translate-x-full");
+        }, 100);
+        
+        setTimeout(() => {
+          notification.classList.add("translate-x-full");
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 300);
+        }, 3000);
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
         loadContacts();
       });

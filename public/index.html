@@ -2,84 +2,180 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Монитор сделок</title>
+    <link rel="stylesheet" href="/styles.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"></script>
-
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-      table {
-        border-collapse: collapse;
-        width: 100%;
-      }
-      th,
-      td {
-        border: 1px solid #ccc;
-        padding: 8px;
-      }
-      th {
-        background: #f0f0f0;
-      }
-      select,
-      input {
-        padding: 5px;
-        margin-right: 10px;
-      }
-    </style>
   </head>
-  <body>
-    <h1>Монитор сделок</h1>
-    <p><a href="/contacts.html">Контакты →</a></p>
-    <button onclick="manualLoad()">Запустить загрузку вручную</button>
-    <button onclick="validatePhonesManually()">Проверить номера</button>
+  <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800">Монитор сделок</h1>
+          </div>
+          <nav class="flex items-center space-x-4">
+            <a href="/contacts.html" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+              Контакты
+            </a>
+          </nav>
+        </div>
+      </div>
+    </header>
 
-    <div style="margin: 10px 0">
-      <label>
-        Воронка:
-        <select id="pipeline-filter" onchange="applyFilters()">
-          <option value="">Все</option>
-        </select>
-      </label>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">Всего сделок</p>
+              <p class="text-2xl font-bold text-slate-900"><span id="total-count">0</span></p>
+            </div>
+          </div>
+        </div>
 
-      <label>
-        Стадия:
-        <select id="stage-filter" onchange="applyFilters()">
-          <option value="">Все</option>
-        </select>
-      </label>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">Активные сделки</p>
+              <p class="text-2xl font-bold text-slate-900">-</p>
+            </div>
+          </div>
+        </div>
 
-      <label>
-        Поиск:
-        <input
-          type="text"
-          id="search"
-          oninput="applyFilters()"
-          placeholder="Название или контакт..."
-        />
-      </label>
-    </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-slate-600">Контакты</p>
+              <p class="text-2xl font-bold text-slate-900">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <p>
-      Общее количество сделок: <strong><span id="total-count">0</span></strong>
-    </p>
+      <!-- Action Buttons -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8">
+        <div class="flex flex-wrap items-center gap-4">
+          <button onclick="manualLoad()" class="btn btn-primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Запустить загрузку
+          </button>
+          <button onclick="validatePhonesManually()" class="btn btn-success">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Проверить номера
+          </button>
+        </div>
+      </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Название</th>
-          <th>Стадия</th>
-          <th>Телефон</th>
-          <th>Воронка</th>
-          <th>Ссылка</th>
-        </tr>
-      </thead>
-      <tbody id="deals-body"></tbody>
-    </table>
+      <!-- Filters -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8">
+        <h3 class="text-lg font-semibold text-slate-800 mb-4">Фильтры</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-group">
+            <label class="form-label">Воронка</label>
+            <select id="pipeline-filter" onchange="applyFilters()" class="form-select">
+              <option value="">Все воронки</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Стадия</label>
+            <select id="stage-filter" onchange="applyFilters()" class="form-select">
+              <option value="">Все стадии</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Поиск</label>
+            <input
+              type="text"
+              id="search"
+              oninput="applyFilters()"
+              placeholder="Название или контакт..."
+              class="form-input"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Deals Table -->
+      <div class="table-container">
+        <div class="card-header">
+          <h3 class="card-title">Список сделок</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="table-header">
+              <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Стадия</th>
+                <th>Телефон</th>
+                <th>Воронка</th>
+                <th>Ссылка</th>
+              </tr>
+            </thead>
+            <tbody id="deals-body" class="table-body">
+              <!-- Rows will be inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between mt-6">
+        <div class="flex items-center space-x-2">
+          <button onclick="prevPage()" class="btn btn-secondary">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Назад
+          </button>
+          <button onclick="nextPage()" class="btn btn-secondary">
+            Вперёд
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="text-sm text-slate-600">
+          Страница: <span class="font-medium text-slate-900"><span id="page-number">1</span></span>
+        </div>
+      </div>
+    </main>
 
     <script>
       const socket = io();
@@ -90,11 +186,12 @@
       socket.on("total-count", (count) => {
         document.getElementById("total-count").innerText = count;
       });
+      
       socket.on("phones-validated", ({ success, error }) => {
         if (success) {
-          alert("Телефоны успешно проверены и отформатированы.");
+          showNotification("Телефоны успешно проверены и отформатированы.", "success");
         } else {
-          alert("Ошибка при проверке телефонов: " + error);
+          showNotification("Ошибка при проверке телефонов: " + error, "error");
         }
       });
 
@@ -130,60 +227,69 @@
         console.log("addRow, incoming deal:", deal);
         const tbody = document.getElementById("deals-body");
         const tr = document.createElement("tr");
+        tr.className = "table-row";
 
-        // Ячейка ID
+        // ID
         const tdId = document.createElement("td");
+        tdId.className = "table-cell-id";
         tdId.textContent = deal.deal_id;
         tr.appendChild(tdId);
 
-        // Ячейка Название + контакт (если есть)
+        // Название + контакт
         const tdTitle = document.createElement("td");
-        // Сначала название сделки
-        const strong = document.createElement("strong");
+        tdTitle.className = "table-cell";
+        
+        const strong = document.createElement("div");
+        strong.className = "font-medium text-slate-900";
         strong.textContent = deal.title || "";
         tdTitle.appendChild(strong);
-        // Если есть контакт — новая строка с ссылкой
+        
         if (deal.contact_link) {
-          tdTitle.appendChild(document.createElement("br"));
+          const contactDiv = document.createElement("div");
+          contactDiv.className = "mt-1";
           const aContact = document.createElement("a");
           aContact.href = deal.contact_link;
           aContact.target = "_blank";
-          // Если name пустой, подставляем запасное
-          const displayName =
-            deal.contact_name && deal.contact_name.trim()
-              ? deal.contact_name
-              : `Контакт ${deal.contact_id}`;
+          aContact.className = "text-blue-600 hover:text-blue-800 text-sm";
+          const displayName = deal.contact_name && deal.contact_name.trim()
+            ? deal.contact_name
+            : `Контакт ${deal.contact_id}`;
           aContact.textContent = displayName;
-          tdTitle.appendChild(aContact);
+          contactDiv.appendChild(aContact);
+          tdTitle.appendChild(contactDiv);
         }
-
+        
         tr.appendChild(tdTitle);
 
-        // Ячейка Стадия
+        // Стадия
         const tdStage = document.createElement("td");
+        tdStage.className = "table-cell";
         tdStage.textContent = deal.stage_name || "-";
         tr.appendChild(tdStage);
 
-        // Ячейка Телефон
+        // Телефон
         const tdPhone = document.createElement("td");
-        // data-phone обработается в validateAndDisplayPhones
+        tdPhone.className = "table-cell";
         const divPhone = document.createElement("div");
         divPhone.className = "phone-display";
         divPhone.dataset.phone = deal.phone || "";
         tdPhone.appendChild(divPhone);
         tr.appendChild(tdPhone);
 
-        // Ячейка Воронка
+        // Воронка
         const tdPipe = document.createElement("td");
+        tdPipe.className = "table-cell";
         tdPipe.textContent = deal.pipeline_name || "-";
         tr.appendChild(tdPipe);
 
-        // Ячейка Ссылка на сделку
+        // Ссылка на сделку
         const tdLink = document.createElement("td");
+        tdLink.className = "table-cell";
         if (deal.deal_link) {
           const aDeal = document.createElement("a");
           aDeal.href = deal.deal_link;
           aDeal.target = "_blank";
+          aDeal.className = "link-button";
           aDeal.textContent = "Открыть";
           tdLink.appendChild(aDeal);
         } else {
@@ -197,6 +303,7 @@
       function manualLoad() {
         console.log("Запуск ручной загрузки...");
         socket.emit("manual-load");
+        showNotification("Загрузка запущена...", "info");
       }
 
       function applyFilters() {
@@ -229,6 +336,25 @@
         }
       }
 
+      function showNotification(message, type = "info") {
+        const notification = document.createElement("div");
+        notification.className = `notification notification-${type} transform translate-x-full`;
+        
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.remove("translate-x-full");
+        }, 100);
+        
+        setTimeout(() => {
+          notification.classList.add("translate-x-full");
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 300);
+        }, 3000);
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
         loadPage(currentPage);
       });
@@ -241,7 +367,6 @@
         phoneDivs.forEach((div) => {
           let phone = div.dataset.phone || "";
 
-          // Добавим +, если не начинается с него, но похоже на номер
           if (phone && !phone.startsWith("+") && /^\d+$/.test(phone)) {
             phone = "+" + phone;
           }
@@ -251,8 +376,7 @@
           div.appendChild(tempInput);
 
           const iti = window.intlTelInput(tempInput, {
-            utilsScript:
-              "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
             initialCountry: "auto",
             nationalMode: false,
             separateDialCode: false,
@@ -261,11 +385,13 @@
           iti.setNumber(phone);
 
           if (!iti.isValidNumber()) {
-            div.parentElement.style.backgroundColor = "#ffe5e5"; // красный фон
+            div.parentElement.classList.add("bg-red-50");
+            div.parentElement.classList.add("border-l-4");
+            div.parentElement.classList.add("border-red-400");
           }
 
           const flagEl = div.querySelector(".iti__flag-container");
-          div.innerHTML = ""; // очищаем
+          div.innerHTML = "";
           if (flagEl) div.appendChild(flagEl);
           div.append(" " + phone);
         });
@@ -274,12 +400,8 @@
       function validatePhonesManually() {
         console.log("Запуск проверки номеров...");
         socket.emit("validate-phones");
+        showNotification("Проверка номеров запущена...", "info");
       }
     </script>
-
-    <br />
-    <button onclick="prevPage()">Назад</button>
-    <button onclick="nextPage()">Вперёд</button>
-    <span>Страница: <span id="page-number">1</span></span>
   </body>
 </html>
