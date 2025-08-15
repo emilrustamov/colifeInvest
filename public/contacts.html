@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Контакты</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+      }
+      th {
+        background: #f0f0f0;
+      }
+      button {
+        padding: 4px 8px;
+        margin: 0 2px;
+      }
+      a {
+        color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Контакты</h1>
+    <p>
+      <a href="/">← Назад к Сделкам</a>
+    </p>
+    <p>
+      <button onclick="loadContacts()">Загрузить контакты</button>
+      <label>
+        <input
+          type="checkbox"
+          id="only-without-deals"
+          onchange="renderContacts(latestData)"
+        />
+        Показать только без сделок
+      </label>
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Имя</th>
+          <th>Телефон</th>
+          <th>Ссылка</th>
+          <th>Связано со сделками</th>
+          <th>Действие</th>
+        </tr>
+      </thead>
+      <tbody id="contacts-body">
+        <!-- Здесь появятся строки -->
+      </tbody>
+    </table>
+
+    <script>
+      console.log("Contacts page script loaded");
+      const socket = io();
+      socket.on("connect", () =>
+        console.log("Socket connected, id =", socket.id)
+      );
+      socket.on("connect_error", (err) =>
+        console.error("Socket connection error:", err)
+      );
+
+      // Запрос списка контактов
+      function loadContacts() {
+        console.log("Emitting load-contacts");
+        socket.emit("load-contacts");
+      }
+
+      // Обработка данных от сервера
+      socket.on("contacts-data", (rows) => {
+        console.log("contacts-data received:", rows);
+        latestData = rows;
+        renderContacts(rows);
+      });
+
+      // Обработать и отрисовать контакты в таблице
+      function renderContacts(rows) {
+        const tbody = document.getElementById("contacts-body");
+        tbody.innerHTML = "";
+
+        const onlyWithout =
+          document.getElementById("only-without-deals").checked;
+
+        rows.forEach((contact) => {
+          const dealIds = Array.isArray(contact.deal_ids)
+            ? contact.deal_ids.filter((id) => id != null)
+            : [];
+          const hasDeals = dealIds.length > 0;
+          if (onlyWithout && hasDeals) {
+            return; // пропускаем контакты, у которых есть сделки
+          }
+          const tr = document.createElement("tr");
+
+          // ID
+          const tdId = document.createElement("td");
+          tdId.textContent = contact.id;
+          tr.appendChild(tdId);
+
+          // Имя
+          const tdName = document.createElement("td");
+          tdName.textContent = contact.contact_name || "-";
+          tr.appendChild(tdName);
+
+          // Телефон
+          const tdPhone = document.createElement("td");
+          tdPhone.textContent = contact.phone || "-";
+          tr.appendChild(tdPhone);
+
+          // Ссылка на контакт
+          const tdLink = document.createElement("td");
+          if (contact.contact_link) {
+            const a = document.createElement("a");
+            a.href = contact.contact_link;
+            a.target = "_blank";
+            a.textContent = "Открыть";
+            tdLink.appendChild(a);
+          } else {
+            tdLink.textContent = "-";
+          }
+          tr.appendChild(tdLink);
+
+          // Связано со сделками: показать количество или списком ссылок
+          const tdDeals = document.createElement("td");
+          if (hasDeals) {
+            // Показать количество и, по желанию, ссылки на сделки
+            tdDeals.textContent = `#${dealIds.length}`;
+            // Можно добавить ссылки, например:
+            const span = document.createElement("span");
+            span.style.marginLeft = "5px";
+            dealIds.forEach((did, idx) => {
+              const aD = document.createElement("a");
+              aD.href = `https://colife-invest.bitrix24.ru/crm/deal/details/${did}/`;
+              aD.target = "_blank";
+              aD.textContent = did;
+              span.appendChild(aD);
+              if (idx < dealIds.length - 1) {
+                span.appendChild(document.createTextNode(", "));
+              }
+            });
+            tdDeals.appendChild(span);
+          } else {
+            tdDeals.textContent = "Нет";
+          }
+          tr.appendChild(tdDeals);
+
+          // Действие: если нет сделок, предложить удалить
+          const tdAction = document.createElement("td");
+          if (!hasDeals) {
+            const btn = document.createElement("button");
+            btn.textContent = "Удалить";
+            btn.onclick = () => {
+              if (
+                confirm(
+                  `Удалить контакт "${contact.contact_name}" (ID ${contact.id}) без сделок?`
+                )
+              ) {
+                socket.emit("delete-contact", { contactId: contact.id });
+              }
+            };
+            tdAction.appendChild(btn);
+          } else {
+            tdAction.textContent = "-";
+          }
+          tr.appendChild(tdAction);
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Обработка результата удаления
+      socket.on("delete-result", ({ success, contactId, message }) => {
+        if (success) {
+          alert(`Контакт ID ${contactId} удалён.`);
+          // Обновляем список: удаляем из latestData
+          latestData = latestData.filter((c) => c.id !== contactId);
+          renderContacts(latestData);
+        } else {
+          alert("Не удалось удалить контакт: " + (message || ""));
+        }
+      });
+
+      // При загрузке страницы автоматически загружаем контакты
+      document.addEventListener("DOMContentLoaded", () => {
+        loadContacts();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Монитор сделок</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+      }
+      th {
+        background: #f0f0f0;
+      }
+      select,
+      input {
+        padding: 5px;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Монитор сделок</h1>
+    <p><a href="/contacts.html">Контакты →</a></p>
+    <button onclick="manualLoad()">Запустить загрузку вручную</button>
+    <button onclick="validatePhonesManually()">Проверить номера</button>
+
+    <div style="margin: 10px 0">
+      <label>
+        Воронка:
+        <select id="pipeline-filter" onchange="applyFilters()">
+          <option value="">Все</option>
+        </select>
+      </label>
+
+      <label>
+        Стадия:
+        <select id="stage-filter" onchange="applyFilters()">
+          <option value="">Все</option>
+        </select>
+      </label>
+
+      <label>
+        Поиск:
+        <input
+          type="text"
+          id="search"
+          oninput="applyFilters()"
+          placeholder="Название или контакт..."
+        />
+      </label>
+    </div>
+
+    <p>
+      Общее количество сделок: <strong><span id="total-count">0</span></strong>
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Название</th>
+          <th>Стадия</th>
+          <th>Телефон</th>
+          <th>Воронка</th>
+          <th>Ссылка</th>
+        </tr>
+      </thead>
+      <tbody id="deals-body"></tbody>
+    </table>
+
+    <script>
+      const socket = io();
+      let currentPage = 1;
+      let pipelineFilter = "";
+      let stageFilter = "";
+
+      socket.on("total-count", (count) => {
+        document.getElementById("total-count").innerText = count;
+      });
+      socket.on("phones-validated", ({ success, error }) => {
+        if (success) {
+          alert("Телефоны успешно проверены и отформатированы.");
+        } else {
+          alert("Ошибка при проверке телефонов: " + error);
+        }
+      });
+
+      socket.on("filters", ({ pipelines, stages }) => {
+        const pipelineSelect = document.getElementById("pipeline-filter");
+        const stageSelect = document.getElementById("stage-filter");
+
+        for (const p of pipelines) {
+          const option = document.createElement("option");
+          option.value = p.id;
+          option.textContent = p.name;
+          pipelineSelect.appendChild(option);
+        }
+
+        for (const s of stages) {
+          const option = document.createElement("option");
+          option.value = s.stage_id;
+          option.textContent = s.stage_name;
+          stageSelect.appendChild(option);
+        }
+      });
+
+      socket.on("page-data", (deals) => {
+        const tbody = document.getElementById("deals-body");
+        tbody.innerHTML = "";
+        for (const deal of deals) {
+          addRow(deal);
+        }
+        validateAndDisplayPhones();
+      });
+
+      function addRow(deal) {
+        console.log("addRow, incoming deal:", deal);
+        const tbody = document.getElementById("deals-body");
+        const tr = document.createElement("tr");
+
+        // Ячейка ID
+        const tdId = document.createElement("td");
+        tdId.textContent = deal.deal_id;
+        tr.appendChild(tdId);
+
+        // Ячейка Название + контакт (если есть)
+        const tdTitle = document.createElement("td");
+        // Сначала название сделки
+        const strong = document.createElement("strong");
+        strong.textContent = deal.title || "";
+        tdTitle.appendChild(strong);
+        // Если есть контакт — новая строка с ссылкой
+        if (deal.contact_link) {
+          tdTitle.appendChild(document.createElement("br"));
+          const aContact = document.createElement("a");
+          aContact.href = deal.contact_link;
+          aContact.target = "_blank";
+          // Если name пустой, подставляем запасное
+          const displayName =
+            deal.contact_name && deal.contact_name.trim()
+              ? deal.contact_name
+              : `Контакт ${deal.contact_id}`;
+          aContact.textContent = displayName;
+          tdTitle.appendChild(aContact);
+        }
+
+        tr.appendChild(tdTitle);
+
+        // Ячейка Стадия
+        const tdStage = document.createElement("td");
+        tdStage.textContent = deal.stage_name || "-";
+        tr.appendChild(tdStage);
+
+        // Ячейка Телефон
+        const tdPhone = document.createElement("td");
+        // data-phone обработается в validateAndDisplayPhones
+        const divPhone = document.createElement("div");
+        divPhone.className = "phone-display";
+        divPhone.dataset.phone = deal.phone || "";
+        tdPhone.appendChild(divPhone);
+        tr.appendChild(tdPhone);
+
+        // Ячейка Воронка
+        const tdPipe = document.createElement("td");
+        tdPipe.textContent = deal.pipeline_name || "-";
+        tr.appendChild(tdPipe);
+
+        // Ячейка Ссылка на сделку
+        const tdLink = document.createElement("td");
+        if (deal.deal_link) {
+          const aDeal = document.createElement("a");
+          aDeal.href = deal.deal_link;
+          aDeal.target = "_blank";
+          aDeal.textContent = "Открыть";
+          tdLink.appendChild(aDeal);
+        } else {
+          tdLink.textContent = "-";
+        }
+        tr.appendChild(tdLink);
+
+        tbody.appendChild(tr);
+      }
+
+      function manualLoad() {
+        console.log("Запуск ручной загрузки...");
+        socket.emit("manual-load");
+      }
+
+      function applyFilters() {
+        pipelineFilter = document.getElementById("pipeline-filter").value;
+        stageFilter = document.getElementById("stage-filter").value;
+        loadPage(currentPage);
+      }
+
+      function loadPage(page) {
+        const search = document.getElementById("search").value;
+        socket.emit("load-page", {
+          page,
+          pipelineId: pipelineFilter || null,
+          stageId: stageFilter || null,
+          search: search.trim(),
+        });
+
+        document.getElementById("page-number").innerText = page;
+      }
+
+      function nextPage() {
+        currentPage++;
+        loadPage(currentPage);
+      }
+
+      function prevPage() {
+        if (currentPage > 1) {
+          currentPage--;
+          loadPage(currentPage);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadPage(currentPage);
+      });
+    </script>
+
+    <script>
+      function validateAndDisplayPhones() {
+        const phoneDivs = document.querySelectorAll(".phone-display");
+
+        phoneDivs.forEach((div) => {
+          let phone = div.dataset.phone || "";
+
+          // Добавим +, если не начинается с него, но похоже на номер
+          if (phone && !phone.startsWith("+") && /^\d+$/.test(phone)) {
+            phone = "+" + phone;
+          }
+
+          const tempInput = document.createElement("input");
+          tempInput.type = "tel";
+          div.appendChild(tempInput);
+
+          const iti = window.intlTelInput(tempInput, {
+            utilsScript:
+              "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+            initialCountry: "auto",
+            nationalMode: false,
+            separateDialCode: false,
+          });
+
+          iti.setNumber(phone);
+
+          if (!iti.isValidNumber()) {
+            div.parentElement.style.backgroundColor = "#ffe5e5"; // красный фон
+          }
+
+          const flagEl = div.querySelector(".iti__flag-container");
+          div.innerHTML = ""; // очищаем
+          if (flagEl) div.appendChild(flagEl);
+          div.append(" " + phone);
+        });
+      }
+
+      function validatePhonesManually() {
+        console.log("Запуск проверки номеров...");
+        socket.emit("validate-phones");
+      }
+    </script>
+
+    <br />
+    <button onclick="prevPage()">Назад</button>
+    <button onclick="nextPage()">Вперёд</button>
+    <span>Страница: <span id="page-number">1</span></span>
+  </body>
+</html>
