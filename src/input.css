@@ -236,6 +236,18 @@
   .animate-slide-out-right {
     animation: slideOutRight 0.3s ease-in;
   }
+  
+  .transform {
+    @apply transition-transform duration-300 ease-in-out;
+  }
+  
+  .translate-x-full {
+    transform: translateX(100%);
+  }
+  
+  .phone-display {
+    @apply flex items-center space-x-2;
+  }
 }
 
 /* Custom animations */
